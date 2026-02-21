@@ -2,10 +2,8 @@ from record_data import record
 import StartAttackReturn
 import pygetwindow as gw
 from time import sleep
-from wall_upgrade import WallUpgrade as wu
+from wall_upgrade import WallUpgrade
 from datetime import datetime
-
-coc = StartAttackReturn.COC
 
 def CheckCocActive():
     window = gw.getActiveWindow()
@@ -17,17 +15,24 @@ def suru():
     sleep(1)
     while CheckCocActive():
         for i in range(20):
-            record({
-                "date" : datetime.now(),
+            coc = StartAttackReturn.COC()
+            data = coc.coc()
+            data.update({
                 "Attack Number" : i
             })
-            coc.coc()
+            record(data)
+            if i > 14:
+                sleep(10)
+                wu = WallUpgrade()
+                wu.wall()
+                break
             
-        wu.wallUpgrade()
-
+    # sleep(10)
+    # wu = WallUpgrade()
+    # wu.wall()
         
 
-a = StartAttackReturn.Attack
+a = StartAttackReturn.Attack()
 def at():
     a.attack()
         

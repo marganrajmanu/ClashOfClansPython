@@ -1,7 +1,8 @@
-from OCR import ocr, money
+from OCR import ocr
+from TrOCR import money
 from time import sleep
 from ahk import AHK
-from pyautogui import click
+from pydirectinput import click
 from record_data import record
 from datetime import datetime
 
@@ -18,6 +19,9 @@ class StartAttackReturn:
     RETURN_HOME =         [1158, 1271, 1504, 1349]
     OKAY =                [1460,  915, 1570, 1000]
     TRY_RELOAD =          [787,  641,  1866, 933 ]
+    END_BATTLE =          [190, 1277,  420,  1330]
+    
+    MIN_LOOT = 460000
 
     def tryReoladWindow(self):
         foundT, xT, yT = ocr("try", StartAttackReturn.TRY_RELOAD)
@@ -38,38 +42,38 @@ class StartAttackReturn:
                 return
 
     def addReinforcement(self):
+        reinforcement_added = False
         sleep(0.5)
         found, x, y = ocr("free", StartAttackReturn.ADD_REINFORCEMENT)
         if found:
             click(2028, 1148)
             for i in range(5):
                 sleep(1)
-                found, x, y = ocr("convfirm", StartAttackReturn.ADD_REINFORCEMENT_ADD, confidence=0.4)
+                found, x, y = ocr("convfirm", StartAttackReturn.ADD_REINFORCEMENT_ADD, confidence=0.3)
                 if found:
                     click(x, y)
+                    reinforcement_added = True
                     break
         click(2100, 1000)
         sleep(0.2)
+        return reinforcement_added
 
-    def start(self, retries=0):
-        if retries > 3:
-            print("Max retries reached in start()")
-            return
-
+    def attackOne(self):
         count = 0
         while True:
             sleep(0.5)
-            found, x, y = ocr("attack", xy=StartAttackReturn.ATTACK_ONE)
+            found, x, y = ocr("attackl", xy=StartAttackReturn.ATTACK_ONE)
             if found:
                 click(x, y)
                 break
             if count == 20:
                 self.pressOkay()
                 self.tryReoladWindow()
-                self.start(retries=retries+1)
+                self.start()
                 return
             count += 1
-
+    
+    def findMatch(self):
         count = 0
         while True:
             sleep(0.5)
@@ -80,41 +84,55 @@ class StartAttackReturn:
             if count == 20:
                 self.pressOkay()
                 self.tryReoladWindow()
-                self.start(retries=retries+1)
+                self.start()
                 return
             count += 1
-
-        self.addReinforcement()
-
+    
+    def attackTwo(self):
         count = 0
         while True:
             sleep(0.5)
-            found, x, y = ocr("attack", xy=StartAttackReturn.ATTACK_TWO, confidence=0.4)
+            found, x, y = ocr("attackl", xy=StartAttackReturn.ATTACK_TWO, confidence=0.4)
             if found:
                 click(x, y)
                 break
             if count == 20:
                 self.tryReoladWindow()
-                self.start(retries=retries+1)
+                self.start()
                 return
             count += 1
             sleep(0.5)
+    
+    def start(self):
+        self.attackOne()
+        self.findMatch()
+        reinforcement_added = self.addReinforcement()
+        self.attackTwo()
+        return reinforcement_added
 
-    def ReturnHomeCheck(self):
+    def returnHomeCheck(self):
+        sleep(0.5)
         found, x, y = ocr("RetuRn Home", xy=StartAttackReturn.RETURN_HOME, confidence=0.1)
         if found:
-            click(x, y)
-            return True
-
-    def checkLoot(self):
-        moneyG = money.gold(villageGold=False)
-        moneyX = money.elixier(villageElixier=False)
-        if moneyG > 400000 or moneyX > 400000:
-            record({
-                "Total Loot Gold": moneyG,
-                "Total Loot Elixier": moneyX
-            })
-            return True
+            return [found, x, y]
+        else:
+            return [found, x, y]
+    def returnHome(self):
+        for i in range(420):
+            found, x, y = self.returnHomeCheck()
+            if found:
+                click(x, y)
+                sleep(0.5)
+                return datetime.now()
+        self.tryReoladWindow()
+        return datetime.now()
+        
+    def checkLoot(self, amount=False):
+        m = money()
+        moneyG = m.gold(villageGold=False)
+        moneyX = m.elixier(villageElixier=False)
+        if moneyG > StartAttackReturn.MIN_LOOT or moneyX > StartAttackReturn.MIN_LOOT:
+            return [moneyG, moneyX] if amount else True
         else:
             return False 
 
@@ -139,8 +157,13 @@ class StartAttackReturn:
 
     def endBattle(self):
         sleep(0.5)
-        click(300, 1300)
-        self.pressOkay()
+        found, x, y = ocr("end battle", xy=StartAttackReturn.END_BATTLE, confidence=0.1)
+        if found:
+            click(300, 1300)
+        sleep(1)
+        found, x, y = ocr("okay", xy=StartAttackReturn.OKAY, confidence=0.1)
+        if found:
+            click(1500, 950)
         return       
 
 class Attack:
@@ -156,7 +179,7 @@ class Attack:
             sleep(0.05)
 
     @staticmethod
-    def attack():
+    def attack(reinforcement_added):
         start = datetime.now()
         sleep(0.5)
         ahk.key_press('2')
@@ -219,11 +242,12 @@ class Attack:
         click(1286, 493)
         sleep(4.25)
 
-        ahk.key_press('d')
-        click(1567, 723)
-        sleep(0.1)
-        click(1244, 556)
-        sleep(1)
+        if reinforcement_added:
+            ahk.key_press('d')
+            click(1567, 723)
+            sleep(0.1)
+            click(1244, 556)
+            sleep(1)
 
         ahk.key_press('e')
         sleep(0.1)
@@ -260,31 +284,33 @@ class Attack:
         sleep(2.5)
         return start
 
-
 class COC:
     @staticmethod
     def coc():
         sar = StartAttackReturn()  # create instance
-        sar.start()
+        reinforcement_added = sar.start()
         while not sar.endWaitCheck():
             pass
+        [moneyG, moneyX] = sar.checkLoot(amount=True)
         sleep(0.5)
-        start_time = Attack.attack()
+        att = Attack()
+        start_time = att.attack(reinforcement_added)
         end = False
-        while True:
-            gold_loot_left = money.gold(villageGold=False)
-            elixier_loot_left = money.elixier(villageElixier=False)
-            if gold_loot_left == 0 and elixier_loot_left == 0:
+        while not end:
+            m = money()
+            gold_loot_left = m.gold(villageGold=False)
+            elixier_loot_left = m.elixier(villageElixier=False)
+            if gold_loot_left <= 30000 and elixier_loot_left <= 30000:
                 sar.endBattle()
                 end = True
                 break
-            if sar.ReturnHomeCheck():
-                break
-            sleep(4)
-        end_time = datetime.now()
-        record({
+            sleep(3)
+        end_time = sar.returnHome()
+        return {
+            "Total Loot Gold": moneyG,
+            "Total Loot Elixier": moneyX,
             "Attack start time": start_time,
             "Attack end time": end_time,
             "Total attack duration" : end_time - start_time,
             "Battle ended" : end
-        })
+        }
