@@ -1,6 +1,15 @@
 pyautogui
+pydirectinput
 pillow
 opencv-python
 numpy
 easyocr
 mss
+
+ahk
+pygetwindow
+
+trdg
+transformers
+torch
+datasets

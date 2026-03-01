@@ -13,19 +13,19 @@ def CheckCocActive():
         
 def suru():
     sleep(1)
-    while CheckCocActive():
-        for i in range(20):
-            coc = StartAttackReturn.COC()
-            data = coc.coc()
-            data.update({
-                "Attack Number" : i
-            })
-            record(data)
-            if i > 14:
-                sleep(10)
-                wu = WallUpgrade()
-                wu.wall()
-                break
+    # while CheckCocActive():
+    for i in range(20):
+        coc = StartAttackReturn.COC()
+        data = coc.coc()
+        data.update({
+            "Attack Number" : i
+        })
+        record(data)
+            # if i > 14:
+            #     sleep(10)
+            #     wu = WallUpgrade()
+            #     wu.wall()
+            #     break
             
     # sleep(10)
     # wu = WallUpgrade()

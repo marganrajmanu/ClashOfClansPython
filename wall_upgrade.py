@@ -1,4 +1,4 @@
-import OCR
+import EasyOCR
 from pydirectinput import click, moveTo
 from ahk import AHK
 from time import sleep
@@ -29,7 +29,7 @@ class WallUpgrade:
     def wallSearch(self):
         count = 0
         while True:
-            found, x, y = OCR.ocr("wall", WallUpgrade.BUILDER_COOR, relax=False)
+            found, x, y = EasyOCR.ocr("wall", WallUpgrade.BUILDER_COOR, relax=False)
             print(f"here {found}")
             if found:
                 moveTo(x, y, duration=0.1)
@@ -69,7 +69,7 @@ class WallUpgrade:
             self.addWall(num=num)
             click(1500, 1200)
             while True:
-                found, x, y = OCR.ocr("okay", WallUpgrade.OKAY)
+                found, x, y = EasyOCR.ocr("okay", WallUpgrade.OKAY)
                 if found:
                     click(x, y)
                     sleep(0.5)
@@ -85,7 +85,7 @@ class WallUpgrade:
             self.addWall(num=num)
             click(1750, 1200)
             while True:
-                found, x, y = OCR.ocr("okay", WallUpgrade.OKAY)
+                found, x, y = EasyOCR.ocr("okay", WallUpgrade.OKAY)
                 if found:
                     click(x, y)
                     sleep(0.5)
